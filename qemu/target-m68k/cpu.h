@@ -30,6 +30,14 @@
 
 #include "fpu/softfloat.h"
 
+#define OS_BYTE     0
+#define OS_WORD     1
+#define OS_LONG     2
+#define OS_SINGLE   3
+#define OS_DOUBLE   4
+#define OS_EXTENDED 5
+#define OS_PACKED   6
+
 #define MAX_QREGS 32
 
 #define TARGET_HAS_ICE 1
@@ -55,8 +63,41 @@
 
 #define EXCP_RTE            0x100
 #define EXCP_HALT_INSN      0x101
+#define EXCP_CAS            0x102
+#ifdef CONFIG_EMULOP
+#define EXCP_EXEC_RETURN    0x20000
+#endif
 
 #define NB_MMU_MODES 2
+#define TARGET_INSN_START_EXTRA_WORDS 1
+
+#define TARGET_PHYS_ADDR_SPACE_BITS 32
+#define TARGET_VIRT_ADDR_SPACE_BITS 32
+
+#ifdef CONFIG_USER_ONLY
+/* Linux uses 4k pages.  */
+#define TARGET_PAGE_BITS 12
+#else
+/* Smallest TLB entry size is 1k.  */
+#define TARGET_PAGE_BITS 10
+#endif
+
+typedef uint32_t CPUM68K_SingleU;
+typedef uint64_t CPUM68K_DoubleU;
+
+typedef struct {
+    uint32_t high;
+    uint64_t low;
+} __attribute__((packed)) CPUM68K_XDoubleU;
+
+typedef struct {
+   uint8_t high[2];
+   uint8_t low[10];
+} __attribute__((packed)) CPUM68K_PDoubleU;
+
+typedef CPU_LDoubleU FPReg;
+#define PRIxFPH PRIx16
+#define PRIxFPL PRIx64
 
 typedef struct CPUM68KState {
     uint32_t dregs[8];
@@ -69,12 +110,16 @@ typedef struct CPUM68KState {
     uint32_t sp[2];
 
     /* Condition flags.  */
-    uint32_t cc_op;
     uint32_t cc_dest;
     uint32_t cc_src;
-    uint32_t cc_x;
+    uint32_t cc_op;
+    uint32_t cc_x; /* always 0/1 */
+    uint32_t cc_n; /* in bit 31 (i.e. negative) */
+    uint32_t cc_v; /* in bit 31, unused, or computed from cc_n and cc_v */
+    uint32_t cc_c; /* either 0/1, unused, or computed from cc_n and cc_v */
+    uint32_t cc_z; /* == 0 or unused */
 
-    float64 fregs[8];
+    FPReg fregs[8];
     float64 fp_result;
     uint32_t fpcr;
     uint32_t fpsr;
@@ -91,6 +136,13 @@ typedef struct CPUM68KState {
     /* Temporary storage for DIV helpers.  */
     uint32_t div1;
     uint32_t div2;
+
+    /* Temporary storage for FPU */
+
+    uint32_t fp0h;
+    uint64_t fp0l;
+    uint32_t fp1h;
+    uint64_t fp1l;
 
     /* MMU status.  */
     struct {
@@ -129,18 +181,25 @@ int cpu_m68k_signal_handler(int host_signum, void *pinfo,
                            void *puc);
 void cpu_m68k_flush_flags(CPUM68KState *, int);
 
-enum {
-    CC_OP_DYNAMIC, /* Use env->cc_op  */
-    CC_OP_FLAGS, /* CC_DEST = CVZN, CC_SRC = unused */
-    CC_OP_LOGIC, /* CC_DEST = result, CC_SRC = unused */
-    CC_OP_ADD,   /* CC_DEST = result, CC_SRC = source */
-    CC_OP_SUB,   /* CC_DEST = result, CC_SRC = source */
-    CC_OP_CMPB,  /* CC_DEST = result, CC_SRC = source */
-    CC_OP_CMPW,  /* CC_DEST = result, CC_SRC = source */
-    CC_OP_ADDX,  /* CC_DEST = result, CC_SRC = source */
-    CC_OP_SUBX,  /* CC_DEST = result, CC_SRC = source */
-    CC_OP_SHIFT, /* CC_DEST = result, CC_SRC = carry */
-};
+typedef enum {
+    /* Translator only -- use env->cc_op.  */
+    CC_OP_DYNAMIC = -1,
+
+    /* Each flag bit computed into cc_[xcnvz].  */
+    CC_OP_FLAGS,
+
+    /* X in cc_x, C = X, N in cc_n, Z in cc_n, V via cc_n/cc_v.  */
+    CC_OP_ADDB, CC_OP_ADDW, CC_OP_ADDL,
+    CC_OP_SUBB, CC_OP_SUBW, CC_OP_SUBL,
+
+    /* X in cc_x, {N,Z,C,V} via cc_n/cc_v.  */
+    CC_OP_CMPB, CC_OP_CMPW, CC_OP_CMPL,
+
+    /* X in cc_x, C = 0, V = 0, N in cc_n, Z in cc_n.  */
+    CC_OP_LOGIC,
+
+    CC_OP_NB
+} CCOp;
 
 #define CCF_C 0x01
 #define CCF_V 0x02
@@ -156,6 +215,13 @@ enum {
 
 #define M68K_SSP    0
 #define M68K_USP    1
+
+#define FCCF_SHIFT 24
+#define FCCF_MASK  (0xff << FCCF_SHIFT)
+#define FCCF_A     (0x01 << FCCF_SHIFT) /* Not-A-Number */
+#define FCCF_I     (0x02 << FCCF_SHIFT) /* Infinity */
+#define FCCF_Z     (0x04 << FCCF_SHIFT) /* Zero */
+#define FCCF_N     (0x08 << FCCF_SHIFT) /* Negative */
 
 /* CACR fields are implementation defined, but some bits are common.  */
 #define M68K_CACR_EUSP  0x10
@@ -183,6 +249,7 @@ void do_m68k_semihosting(CPUM68KState *env, int nr);
    ISA revisions mentioned.  */
 
 enum m68k_features {
+    M68K_FEATURE_M68000,
     M68K_FEATURE_CF_ISA_A,
     M68K_FEATURE_CF_ISA_B, /* (ISA B or C).  */
     M68K_FEATURE_CF_ISA_APLUSC, /* BIT/BITREV, FF1, STRLDSR (ISA A+ or C).  */
@@ -193,7 +260,14 @@ enum m68k_features {
     M68K_FEATURE_CF_EMAC_B, /* Revision B EMAC (dual accumulate).  */
     M68K_FEATURE_USP, /* User Stack Pointer.  (ISA A+, B or C).  */
     M68K_FEATURE_EXT_FULL, /* 68020+ full extension word.  */
-    M68K_FEATURE_WORD_INDEX /* word sized address index registers.  */
+    M68K_FEATURE_WORD_INDEX, /* word sized address index registers.  */
+    M68K_FEATURE_SCALED_INDEX, /* scaled address index registers.  */
+    M68K_FEATURE_LONG_MULDIV,	/* 32 bit multiply/divide. */
+    M68K_FEATURE_QUAD_MULDIV,	/* 64 bit multiply/divide. */
+    M68K_FEATURE_BCCL,		/* Long conditional branches.  */
+    M68K_FEATURE_BITFIELD,	/* Bit field insns.  */
+    M68K_FEATURE_FPU,
+    M68K_FEATURE_CAS
 };
 
 static inline int m68k_feature(CPUM68KState *env, int feature)
