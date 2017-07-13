@@ -1429,10 +1429,10 @@ static void free_cond(DisasCompare *c)
 static void gen_jmpcc(DisasContext *s, int cond, TCGLabel *l1)
 {
   DisasCompare c;
-
+  TCGContext *tcg_ctx = s->uc->tcg_ctx;
   gen_cc_cond(&c, s, cond);
   update_cc_op(s);
-  tcg_gen_brcond_i32(c.tcond, c.v1, c.v2, l1);
+  tcg_gen_brcond_i32(cpu_env, c.tcond, c.v1, c.v2, l1);
   free_cond(&c);
 }
 
@@ -1445,13 +1445,13 @@ DISAS_INSN(scc)
     cond = (insn >> 8) & 0xf;
     gen_cc_cond(&c, s, cond);
 
-    tmp = tcg_temp_new(tcg_ctx);
+    tmp = tcg_temp_new(cpu_env);
     tcg_gen_setcond_i32(cpu_env, c.tcond, tmp, c.v1, c.v2);
     free_cond(&c);
 
     reg = DREG(insn, 0);
     tcg_gen_neg_i32(cpu_env, tmp, tmp);
-    tcg_gen_deposit_i32(reg, reg, tmp, 0, 8);
+    tcg_gen_deposit_i32(cpu_env, reg, reg, tmp, 0, 8);
     tcg_temp_free_i32(cpu_env, tmp);
 }
 
@@ -1503,12 +1503,12 @@ static void gen_jmp_tb(DisasContext *s, int n, uint32_t dest)
     if (unlikely(s->singlestep_enabled)) {
         gen_exception(s, dest, EXCP_DEBUG);
     } else if (use_goto_tb(s, dest)) {
-        tcg_gen_goto_tb(n);
+        tcg_gen_goto_tb(cpu_env, n);
         tcg_gen_movi_i32(cpu_env, QREG_PC, dest);
-        tcg_gen_exit_tb((uintptr_t)s->tb + n);
+        tcg_gen_exit_tb(cpu_env, (uintptr_t)s->tb + n);
     } else {
         gen_jmp_im(s, dest);
-        tcg_gen_exit_tb(0);
+        tcg_gen_exit_tb(cpu_env, 0);
     }
     s->is_jmp = DISAS_TB_JUMP;
 }
@@ -1641,7 +1641,7 @@ DISAS_INSN(divw)
     /* result rem:quot */
 
     tcg_gen_ext16u_i32(quot, quot);
-    tcg_gen_deposit_i32(quot, quot, rem, 16, 16);
+    tcg_gen_deposit_i32(cpu_env, quot, quot, rem, 16, 16);
     tcg_temp_free_i32(cpu_env, rem);
 
     /* on overflow, operands and flags are unaffected */
@@ -5666,7 +5666,7 @@ void gen_intermediate_code(CPUM68KState *env, TranslationBlock *tb)
         case DISAS_UPDATE:
             update_cc_op(dc);
             /* indicate that the hash table must be used to find the next TB */
-            tcg_gen_exit_tb(0);
+            tcg_gen_exit_tb(cpu_env, 0);
             break;
         case DISAS_TB_JUMP:
             /* nothing more to generate */
