@@ -181,6 +181,20 @@ int cpu_m68k_signal_handler(int host_signum, void *pinfo,
                            void *puc);
 void cpu_m68k_flush_flags(CPUM68KState *, int);
 
+enum {
+    //CC_OP_DYNAMIC, /* Use env->cc_op  */
+    //CC_OP_FLAGS, /* CC_DEST = CVZN, CC_SRC = unused */
+    //CC_OP_LOGIC, /* CC_DEST = result, CC_SRC = unused */
+    CC_OP_ADD,   /* CC_DEST = result, CC_SRC = source */
+    CC_OP_SUB,   /* CC_DEST = result, CC_SRC = source */
+    //CC_OP_CMPB,  /* CC_DEST = result, CC_SRC = source */
+    //CC_OP_CMPW,  /* CC_DEST = result, CC_SRC = source */
+    CC_OP_ADDX,  /* CC_DEST = result, CC_SRC = source */
+    CC_OP_SUBX,  /* CC_DEST = result, CC_SRC = source */
+    CC_OP_SHIFT, /* CC_DEST = result, CC_SRC = carry */
+};
+
+
 typedef enum {
     /* Translator only -- use env->cc_op.  */
     CC_OP_DYNAMIC = -1,
