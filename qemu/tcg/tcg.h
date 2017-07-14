@@ -32,6 +32,8 @@
 
 #include "uc_priv.h"
 
+#define TCG_MAX_INSNS 512
+
 /* Default target word size to pointer size.  */
 #ifndef TCG_TARGET_REG_BITS
 # if UINTPTR_MAX == UINT32_MAX

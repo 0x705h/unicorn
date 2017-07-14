@@ -2444,7 +2444,7 @@ DISAS_INSN(cas2)
 
     /* else cmp1 = dest1, cmp2 = dest2 */
 
-    tcg_gen_movcond_i32(cpu_env, CG_COND_NE, cmp1,
+    tcg_gen_movcond_i32(cpu_env, TCG_COND_NE, cmp1,
                         res1, zero,
                         dest1, cmp1);
     tcg_gen_movcond_i32(cpu_env, TCG_COND_NE, cmp2,
@@ -5688,10 +5688,10 @@ void gen_intermediate_code(CPUM68KState *env, TranslationBlock *tb)
     tb->icount = num_insns;
 }
 
-void m68k_cpu_dump_state(CPUState *cs, FILE *f, fprintf_function cpu_fprintf,
+void m68k_cpu_dump_state(struct uc_engine *uc, CPUState *cs, FILE *f, fprintf_function cpu_fprintf,
                          int flags)
 {
-    M68kCPU *cpu = M68K_CPU(cs);
+    M68kCPU *cpu = M68K_CPU(uc, cs);
     CPUM68KState *env = &cpu->env;
     int i;
     uint16_t sr;
