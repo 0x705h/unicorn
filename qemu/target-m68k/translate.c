@@ -25,12 +25,15 @@
 #include "tcg-op.h"
 #include "qemu/log.h"
 #include "exec/cpu_ldst.h"
-
+#include "unicorn/platform.h"
 #include "exec/helper-proto.h"
 #include "exec/helper-gen.h"
 
 //#include "trace-tcg.h"
 //#include "exec/log.h"
+#include "exec/gen-icount.h"
+
+#include "uc_priv.h"
 
 
 //#define DEBUG_DISPATCH 1
