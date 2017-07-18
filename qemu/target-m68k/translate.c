@@ -18,7 +18,7 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "qemu/osdep.h"
+//#include "qemu/osdep.h"
 #include "cpu.h"
 //#include "disas/disas.h"
 #include "exec/exec-all.h"
@@ -935,14 +935,14 @@ static inline void gen_extend_FP0(int opsize)
     switch (opsize) {
     case OS_BYTE:
         tcg_gen_ext8s_i32(cpu_env, QREG_FP0H, QREG_FP0H);
-        gen_helper_exts32_FP0(cpu_env);
+        gen_helper_exts32_FP0();
         break;
     case OS_WORD:
         tcg_gen_ext16s_i32(cpu_env, QREG_FP0H, QREG_FP0H);
-        gen_helper_exts32_FP0(cpu_env);
+        gen_helper_exts32_FP0();
         break;
     case OS_LONG:
-        gen_helper_exts32_FP0(cpu_env);
+        gen_helper_exts32_FP0();
         break;
     case OS_SINGLE:
         gen_helper_extf32_FP0(cpu_env);
@@ -995,15 +995,15 @@ static inline void gen_load_FP0(DisasContext * s, int opsize, TCGv addr)
     switch(opsize) {
     case OS_BYTE:
         tcg_gen_qemu_ld8s(s->uc, QREG_FP0H, addr, index);
-        gen_helper_exts32_FP0(cpu_env);
+        gen_helper_exts32_FP0();
         break;
     case OS_WORD:
         tcg_gen_qemu_ld16s(s->uc, QREG_FP0H, addr, index);
-        gen_helper_exts32_FP0(cpu_env);
+        gen_helper_exts32_FP0();
         break;
     case OS_LONG:
         tcg_gen_qemu_ld32u(s->uc, QREG_FP0H, addr, index);
-        gen_helper_exts32_FP0(cpu_env);
+        gen_helper_exts32_FP0();
         break;
     case OS_SINGLE:
         tcg_gen_qemu_ld32u(s->uc, QREG_FP0H, addr, index);
