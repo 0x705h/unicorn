@@ -262,7 +262,7 @@ static inline void gen_addr_fault(DisasContext *s)
     gen_exception(s, s->insn_pc, EXCP_ADDRESS);
 }
 
-static void gen_op_load_fpr_FP0(int freg)
+/*static void gen_op_load_fpr_FP0(int freg)
 {
     ENABLE_UC_CTX_BY_DC
 
@@ -309,7 +309,7 @@ static void gen_op_load_fpr_FP1(int freg)
                    offsetof(CPUM68KState, fregs[freg]) +
                    offsetof(FPReg, d.low));
 }
-
+*/
 /* Generate a load from the specified address.  Narrow values are
    sign extended to full register width.  */
 static inline TCGv gen_load(DisasContext * s, int opsize, TCGv addr, int sign)
@@ -930,7 +930,7 @@ static TCGv gen_ea(CPUM68KState *env, DisasContext *s, uint16_t insn,
     return NULL_QREG;
 }
 
-static inline void gen_extend_FP0(int opsize)
+/*static inline void gen_extend_FP0(int opsize)
 {
     switch (opsize) {
     case OS_BYTE:
@@ -1082,7 +1082,8 @@ static inline void gen_store_FP0(DisasContext *s, int opsize, TCGv addr)
     }
     gen_throws_exception = gen_last_qop;
 }
-
+*/
+/*
 static void gen_op_load_ea_FP0(CPUM68KState *env, DisasContext *s,
                                uint16_t insn, int opsize)
 {
@@ -1091,22 +1092,22 @@ static void gen_op_load_ea_FP0(CPUM68KState *env, DisasContext *s,
     uint64_t val;
 
     switch ((insn >> 3) & 7) {
-    case 0: /* Data register direct.  */
+    case 0: // Data register direct.  
         tcg_gen_mov_i32(cpu_env, QREG_FP0H, DREG(insn, 0));
         gen_extend_FP0(opsize);
         break;
-    case 1:  /* Address register direct.  */
+    case 1:  // Address register direct.  
         gen_addr_fault(s);
         break;
-    case 2: /* Indirect register */
+    case 2: // Indirect register
         gen_load_FP0(s, opsize, AREG(insn, 0));
         break;
-    case 3: /* Indirect postincrement.  */
+    case 3: // Indirect postincrement.  
         reg = AREG(insn, 0);
         gen_load_FP0(s, opsize, reg);
         tcg_gen_addi_i32(cpu_env, reg, reg, opsize_bytes(opsize));
         break;
-    case 4: /* Indirect predecrememnt.  */
+    case 4: // Indirect predecrememnt. 
         addr = gen_lea(env, s, insn, opsize);
         if (IS_NULL_QREG(addr)) {
             gen_addr_fault(s);
@@ -1115,8 +1116,8 @@ static void gen_op_load_ea_FP0(CPUM68KState *env, DisasContext *s,
         gen_load_FP0(s, opsize, addr);
         tcg_gen_mov_i32(cpu_env, AREG(insn, 0), addr);
         break;
-    case 5: /* Indirect displacement.  */
-    case 6: /* Indirect index + displacement.  */
+    case 5: // Indirect displacement.  
+    case 6: // Indirect index + displacement. 
         addr = gen_lea(env, s, insn, opsize);
         if (IS_NULL_QREG(addr)) {
             gen_addr_fault(s);
@@ -1124,12 +1125,12 @@ static void gen_op_load_ea_FP0(CPUM68KState *env, DisasContext *s,
         }
         gen_load_FP0(s, opsize, addr);
         break;
-    case 7: /* Other */
+    case 7: // Other 
         switch (insn & 7) {
-        case 0: /* Absolute short.  */
-        case 1: /* Absolute long.  */
-        case 2: /* pc displacement  */
-        case 3: /* pc index+displacement.  */
+        case 0: // Absolute short.  
+        case 1: // Absolute long.  
+        case 2: // pc displacement  
+        case 3: // pc index+displacement.  
             addr = gen_lea(env, s, insn, opsize);
             if (IS_NULL_QREG(addr)) {
                 gen_addr_fault(s);
@@ -1137,7 +1138,7 @@ static void gen_op_load_ea_FP0(CPUM68KState *env, DisasContext *s,
             }
             gen_load_FP0(s, opsize, addr);
             break;
-        case 4: /* Immediate.  */
+        case 4: // Immediate.  
             switch (opsize) {
             case OS_BYTE:
                 val = read_im8(env, s);
@@ -1189,23 +1190,23 @@ static void gen_op_store_ea_FP0(CPUM68KState *env, DisasContext *s,
     TCGv addr;
 
     switch ((insn >> 3) & 7) {
-    case 0: /* Data register direct.  */
+    case 0: // Data register direct.  
         gen_reduce_FP0(opsize);
         tcg_gen_mov_i32(cpu_env, DREG(insn, 0), QREG_FP0H);
         break;
-    case 1:  /* Address register direct.  */
+    case 1:  // Address register direct.  
         gen_addr_fault(s);
         break;
-    case 2: /* Indirect register */
+    case 2: // Indirect register 
         reg = AREG(insn, 0);
         gen_store_FP0(s, opsize, reg);
         break;
-    case 3: /* Indirect postincrement.  */
+    case 3: // Indirect postincrement.  
         reg = AREG(insn, 0);
         gen_store_FP0(s, opsize, reg);
         tcg_gen_addi_i32(cpu_env, reg, reg, opsize_bytes(opsize));
         break;
-    case 4: /* Indirect predecrememnt.  */
+    case 4: // Indirect predecrememnt.  
         addr = gen_lea(env, s, insn, opsize);
         if (IS_NULL_QREG(addr)) {
             gen_addr_fault(s);
@@ -1214,8 +1215,8 @@ static void gen_op_store_ea_FP0(CPUM68KState *env, DisasContext *s,
         gen_store_FP0(s, opsize, addr);
         tcg_gen_mov_i32(cpu_env, AREG(insn, 0), addr);
         break;
-    case 5: /* Indirect displacement.  */
-    case 6: /* Indirect index + displacement.  */
+    case 5: // Indirect displacement.  
+    case 6: // Indirect index + displacement.  
         addr = gen_lea(env, s, insn, opsize);
         if (IS_NULL_QREG(addr)) {
             gen_addr_fault(s);
@@ -1223,10 +1224,10 @@ static void gen_op_store_ea_FP0(CPUM68KState *env, DisasContext *s,
         }
         gen_store_FP0(s, opsize, addr);
         break;
-    case 7: /* Other */
+    case 7: // Other 
         switch (insn & 7) {
-        case 0: /* Absolute short.  */
-        case 1: /* Absolute long.  */
+        case 0: // Absolute short. 
+        case 1: // Absolute long.  
             addr = gen_lea(env, s, insn, opsize);
             if (IS_NULL_QREG(addr)) {
                 gen_addr_fault(s);
@@ -1234,9 +1235,9 @@ static void gen_op_store_ea_FP0(CPUM68KState *env, DisasContext *s,
             }
             gen_store_FP0(s, opsize, addr);
             break;
-        case 2: /* pc displacement  */
-        case 3: /* pc index+displacement.  */
-        case 4: /* Immediate.  */
+        case 2: // pc displacement  
+        case 3: // pc index+displacement.  
+        case 4: // Immediate.  
             gen_addr_fault(s);
             break;
         default:
@@ -1244,7 +1245,7 @@ static void gen_op_store_ea_FP0(CPUM68KState *env, DisasContext *s,
         }
     }
 }
-
+*/
 typedef struct {
     TCGCond tcond;
     bool g1;
@@ -2602,7 +2603,7 @@ static TCGv gen_get_ccr(DisasContext *s)
     gen_flush_flags(s);
     update_cc_op(s);
     dest = tcg_temp_new(cpu_env);
-    gen_helper_get_ccr(dest, cpu_env);
+    gen_helper_get_ccr(cpu_env, dest, cpu_env);
     return dest;
 }
 
@@ -2655,7 +2656,7 @@ static void gen_set_sr(CPUM68KState *env, DisasContext *s, uint16_t insn,
 
     if ((insn & 0x38) == 0) {
         if (ccr_only) {
-            gen_helper_set_ccr(cpu_env, DREG(insn, 0));
+            gen_helper_set_ccr(cpu_env, tcg_ctx->cpu_env, DREG(insn, 0));
         } else {
             gen_helper_set_sr(cpu_env, tcg_ctx->cpu_env, DREG(insn, 0));
         }
@@ -4029,7 +4030,7 @@ DISAS_INSN(bitfield_reg)
         break;
     case 5: /* bfffo */
         tcg_gen_rotl_i32(cpu_env, reg2, tmp, offset);
-        gen_helper_bfffo(tmp, tmp, width);
+        gen_helper_bfffo(cpu_env, tmp, tmp, width);
         tcg_gen_add_i32(cpu_env, reg2, tmp, offset);
         break;
     case 6: /* bfset */
@@ -4187,7 +4188,7 @@ DISAS_INSN(bitfield_mem)
     /* load */
 
     bitfield = tcg_temp_new_i64(cpu_env);
-    gen_helper_bitfield_load(bitfield, cpu_env, src, offset, width);
+    gen_helper_bitfield_load(cpu_env, bitfield, cpu_env, src, offset, width);
 
     /* compute CC and move bitfield into a 32bit */
 
@@ -4222,7 +4223,7 @@ DISAS_INSN(bitfield_mem)
     case 2: /* bfchg */
         mask_bitfield = gen_bitfield_mask(offset, width);
         tcg_gen_xor_i64(cpu_env, bitfield, bitfield, mask_bitfield);
-        gen_helper_bitfield_store(cpu_env, src, offset, width, bitfield);
+        gen_helper_bitfield_store(cpu_env, cpu_env, src, offset, width, bitfield);
         break;
     case 3: /* bfexts */
         shift = tcg_temp_new(cpu_env);
@@ -4233,16 +4234,16 @@ DISAS_INSN(bitfield_mem)
         mask_bitfield = gen_bitfield_mask(offset, width);
         tcg_gen_not_i64(cpu_env, mask_bitfield, mask_bitfield);
         tcg_gen_and_i64(cpu_env, bitfield, bitfield, mask_bitfield);
-        gen_helper_bitfield_store(cpu_env, src, offset, width, bitfield);
+        gen_helper_bitfield_store(cpu_env, cpu_env, src, offset, width, bitfield);
         break;
     case 5: /* bfffo */
-        gen_helper_bfffo(val, val, width);
+        gen_helper_bfffo(cpu_env, val, val, width);
         tcg_gen_add_i32(cpu_env, reg, val, offset);
         break;
     case 6: /* bfset */
         mask_bitfield = gen_bitfield_mask(offset, width);
         tcg_gen_or_i64(cpu_env, bitfield, bitfield, mask_bitfield);
-        gen_helper_bitfield_store(cpu_env, src, offset, width, bitfield);
+        gen_helper_bitfield_store(cpu_env, cpu_env, src, offset, width, bitfield);
         break;
     case 7: /* bfins */
         /* clear */
@@ -4251,7 +4252,7 @@ DISAS_INSN(bitfield_mem)
         tcg_gen_and_i64(cpu_env, bitfield, bitfield, mask_bitfield);
         /* insert */
         gen_bitfield_ins(offset, width, reg, bitfield);
-        gen_helper_bitfield_store(cpu_env, src, offset, width, bitfield);
+        gen_helper_bitfield_store(cpu_env, cpu_env, src, offset, width, bitfield);
         break;
     }
 }
@@ -4432,19 +4433,19 @@ DISAS_INSN(trap)
 {
     gen_exception(s, s->pc - 2, EXCP_TRAP0 + (insn & 0xf));
 }
-
+/*
 static void gen_store_fcr(DisasContext *s, TCGv addr, int reg)
 {
     int index = IS_USER(s);
 
     switch (reg) {
-    case 0: /* FPSR */
+    case 0: // FPSR 
         gen_helper_update_fpsr(cpu_env);
         tcg_gen_qemu_st32(s->uc, QEMU_FPSR, addr, index);
         break;
-    case 1: /* FPIAR */
+    case 1: // FPIAR 
         break;
-    case 2: /* FPCR */
+    case 2: // FPCR 
         tcg_gen_qemu_st32(s->uc, QEMU_FPCR, addr, index);
         break;
     }
@@ -4456,12 +4457,12 @@ static void gen_load_fcr(DisasContext *s, TCGv addr, int reg)
     TCGv val;
     TCGContext *tcg_ctx = s->uc->tcg_ctx;
     switch (reg) {
-    case 0: /* FPSR */
+    case 0: //* FPSR 
         tcg_gen_qemu_ld32u(s->uc, QEMU_FPSR, addr, index);
         break;
-    case 1: /* FPIAR */
+    case 1: //* FPIAR 
         break;
-    case 2: /* FPCR */
+    case 2: //* FPCR 
         val = tcg_temp_new(tcg_ctx);
         tcg_gen_qemu_ld32u(s->uc, QEMU_FPCR, addr, index);
         gen_helper_set_fpcr(cpu_env, val);
@@ -4484,25 +4485,25 @@ static void gen_op_fmove_fcr(CPUM68KState *env, DisasContext *s,
 
         if (is_write) {
             switch (mask) {
-            case 1: /* FPIAR */
+            case 1: // FPIAR 
                 break;
-            case 2: /* FPSR */
+            case 2: // FPSR 
                 gen_helper_update_fpsr(cpu_env);
                 DEST_EA(env, insn, OS_LONG, QEMU_FPSR, NULL);
                 break;
-            case 4: /* FPCR */
+            case 4: // FPCR 
                 DEST_EA(env, insn, OS_LONG, QEMU_FPCR, NULL);
                 break;
             }
             return;
         }
         switch (mask) {
-        case 1: /* FPIAR */
+        case 1: // FPIAR 
             break;
-        case 2: /* FPSR */
+        case 2: // FPSR 
             SRC_EA(env, QEMU_FPSR, OS_LONG, 0, NULL);
             break;
-        case 4: /* FPCR */
+        case 4: // FPCR 
             SRC_EA(env, val, OS_LONG, 0, NULL);
             gen_helper_set_fpcr(cpu_env, val);
             break;
@@ -4513,13 +4514,13 @@ static void gen_op_fmove_fcr(CPUM68KState *env, DisasContext *s,
     addr = tcg_temp_new(cpu_env);
     tcg_gen_mov_i32(cpu_env, addr, tmp);
 
-    /* mask:
-     *
-     * 0b100 Floating-Point Control Register
-     * 0b010 Floating-Point Status Register
-     * 0b001 Floating-Point Instruction Address Register
-     *
-     */
+    // mask:
+     //
+     // 0b100 Floating-Point Control Register
+     // 0b010 Floating-Point Status Register
+     // 0b001 Floating-Point Instruction Address Register
+     //
+     //
 
     if (is_write && (insn & 070) == 040) {
         for (i = 2; i >= 0; i--, mask >>= 1) {
@@ -4614,10 +4615,10 @@ static void gen_op_fmovem(CPUM68KState *env, DisasContext *s,
     }
     tcg_temp_free_i32(cpu_env, addr);
 }
-
+*/
 /* ??? FP exceptions are not implemented.  Most exceptions are deferred until
    immediately before the next FP instruction is executed.  */
-DISAS_INSN(fpu)
+/*DISAS_INSN(fpu)
 {
     uint16_t ext;
     uint8_t rom_offset;
@@ -4635,24 +4636,24 @@ DISAS_INSN(fpu)
         goto undef;
     case 2:
         if ( insn == 0xf200 && (ext & 0xfc00) == 0x5c00) {
-            /* fmovecr */
+            // fmovecr 
             rom_offset = ext & 0x7f;
             gen_helper_const_FP0(cpu_env, tcg_const_i32(cpu_env, rom_offset));
             gen_op_store_fpr_FP0(REG(ext, 7));
             return;
         }
         break;
-    case 3: /* fmove out */
+    case 3: // fmove out 
         opsize = ext_opsize(ext, 10);
         gen_op_load_fpr_FP0(REG(ext, 7));
         gen_helper_compare_FP0(cpu_env);
         gen_op_store_ea_FP0(env, s, insn, opsize);
         return;
-    case 4: /* fmove to control register.  */
-    case 5: /* fmove from control register.  */
+    case 4: // fmove to control register.  
+    case 5: // fmove from control register.  
         gen_op_fmove_fcr(env, s, insn, ext);
         return;
-    case 6: /* fmovem */
+    case 6: // fmovem 
     case 7:
         if ((ext & 0xf00) != 0 || (ext & 0xff) == 0)
             goto undef;
@@ -4665,112 +4666,112 @@ DISAS_INSN(fpu)
         opsize = ext_opsize(ext, 10);
         gen_op_load_ea_FP0(env, s, insn, opsize);
     } else {
-        /* Source register.  */
+        // Source register.  
         opsize = OS_EXTENDED;
         gen_op_load_fpr_FP0(REG(ext, 10));
     }
     round = 1;
     set_dest = 1;
     switch (opmode) {
-    case 0: case 0x40: case 0x44: /* fmove */
+    case 0: case 0x40: case 0x44: // fmove 
         break;
-    case 1: /* fint */
+    case 1: // fint 
         gen_helper_iround_FP0(cpu_env);
         round = 0;
         break;
-    case 2: /* fsinh */
+    case 2: // fsinh 
         gen_helper_sinh_FP0(cpu_env);
         break;
-    case 3: /* fintrz */
+    case 3: // fintrz 
         gen_helper_itrunc_FP0(cpu_env);
         round = 0;
         break;
-    case 4: case 0x41: case 0x45: /* fsqrt */
+    case 4: case 0x41: case 0x45: // fsqrt 
         gen_helper_sqrt_FP0(cpu_env);
         break;
-    case 6:                          /* flognp1 */
+    case 6:                          // flognp1 
         gen_helper_lognp1_FP0(cpu_env);
         break;
-    case 0x09:                       /* ftanh */
+    case 0x09:                       // ftanh 
         gen_helper_tanh_FP0(cpu_env);
         break;
-    case 0x0a:                       /* fatan */
+    case 0x0a:                       // fatan 
         gen_helper_atan_FP0(cpu_env);
         break;
-    case 0x0c:                       /* fasin */
+    case 0x0c:                       // fasin 
         gen_helper_asin_FP0(cpu_env);
         break;
-    case 0x0d:                       /* fatanh */
+    case 0x0d:                       // fatanh 
         gen_helper_atanh_FP0(cpu_env);
         break;
-    case 0x0e:                       /* fsin */
+    case 0x0e:                       // fsin 
         gen_helper_sin_FP0(cpu_env);
         break;
-    case 0x0f:                       /* ftan */
+    case 0x0f:                       // ftan 
         gen_helper_tan_FP0(cpu_env);
         break;
-    case 0x10:                       /* fetox */
+    case 0x10:                       // fetox 
         gen_helper_exp_FP0(cpu_env);
         break;
-    case 0x11:                       /* ftwotox */
+    case 0x11:                       // ftwotox 
         gen_helper_exp2_FP0(cpu_env);
         break;
-    case 0x12:                       /* ftentox */
+    case 0x12:                       // ftentox 
         gen_helper_exp10_FP0(cpu_env);
         break;
-    case 0x14:                       /* flogn */
+    case 0x14:                       // flogn 
         gen_helper_ln_FP0(cpu_env);
         break;
-    case 0x15:                       /* flog10 */
+    case 0x15:                       // flog10 
         gen_helper_log10_FP0(cpu_env);
         break;
-    case 0x18: case 0x58: case 0x5c: /* fabs */
+    case 0x18: case 0x58: case 0x5c: // fabs 
         gen_helper_abs_FP0(cpu_env);
         break;
     case 0x19:
         gen_helper_cosh_FP0(cpu_env);
         break;
-    case 0x1a: case 0x5a: case 0x5e: /* fneg */
+    case 0x1a: case 0x5a: case 0x5e: // fneg 
         gen_helper_chs_FP0(cpu_env);
         break;
-    case 0x1c:                       /* facos */
+    case 0x1c:                       // facos 
         gen_helper_acos_FP0(cpu_env);
         break;
-    case 0x1d:                       /* fcos */
+    case 0x1d:                       // fcos 
         gen_helper_cos_FP0(cpu_env);
         break;
-    case 0x1e:                       /* fgetexp */
+    case 0x1e:                       // fgetexp 
         gen_helper_getexp_FP0(cpu_env);
         break;
-    case 0x20: case 0x60: case 0x64: /* fdiv */
+    case 0x20: case 0x60: case 0x64: // fdiv 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_div_FP0_FP1(cpu_env);
         break;
-    case 0x21:                       /* fmod */
+    case 0x21:                       // fmod 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_mod_FP0_FP1(cpu_env);
         break;
-    case 0x22: case 0x62: case 0x66: /* fadd */
+    case 0x22: case 0x62: case 0x66: // fadd 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_add_FP0_FP1(cpu_env);
         break;
-    case 0x23: case 0x63: case 0x67: /* fmul */
+    case 0x23: case 0x63: case 0x67: // fmul 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_mul_FP0_FP1(cpu_env);
         break;
-    case 0x24:                      /* fsgldiv */
+    case 0x24:                      // fsgldiv 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_div_FP0_FP1(cpu_env);
         break;
-    case 0x26:                       /* fscale */
+    case 0x26:                       // fscale 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_scale_FP0_FP1(cpu_env);
         break;
-    case 0x27:                      /* fsglmul */
+    case 0x27:                      // fsglmul 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_mul_FP0_FP1(cpu_env);
         break;
-    case 0x28: case 0x68: case 0x6c: /* fsub */
+    case 0x28: case 0x68: case 0x6c: // fsub 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_sub_FP0_FP1(cpu_env);
         break;
@@ -4778,14 +4779,14 @@ DISAS_INSN(fpu)
     case 0x33: case 0x34: case 0x35:
     case 0x36: case 0x37:
         gen_helper_sincos_FP0_FP1(cpu_env);
-        gen_op_store_fpr_FP0(REG(ext, 7));	/* sin */
-        gen_op_store_fpr_FP1(REG(ext, 0));	/* cos */
+        gen_op_store_fpr_FP0(REG(ext, 7));	// sin 
+        gen_op_store_fpr_FP1(REG(ext, 0));	// cos 
         break;
-    case 0x38: /* fcmp */
+    case 0x38: // fcmp 
         gen_op_load_fpr_FP1(REG(ext, 7));
         gen_helper_fcmp_FP0_FP1(cpu_env);
         return;
-    case 0x3a: /* ftst */
+    case 0x3a: // ftst 
         set_dest = 0;
         round = 0;
         break;
@@ -4814,11 +4815,11 @@ DISAS_INSN(fpu)
     }
     return;
 undef:
-    /* FIXME: Is this right for offset addressing modes?  */
+    // FIXME: Is this right for offset addressing modes?  
     s->pc -= 2;
     disas_undef_fpu(env, s, insn);
 }
-
+*/
 static void gen_fjmpcc(DisasContext *s, int cond, TCGLabel *l1)
 {
     TCGv tmp;
@@ -5577,7 +5578,7 @@ void register_m68k_insns (CPUM68KState *env)
     INSN(bitfield_mem,e8c0, f8c0, BITFIELD);
     INSN(bitfield_reg,e8c0, f8f8, BITFIELD);
     BASE(undef_fpu, f000, f000);
-    INSN(fpu,       f200, ffc0, CF_FPU);
+    /*INSN(fpu,       f200, ffc0, CF_FPU);
     INSN(fbcc,      f280, ff80, CF_FPU);
     INSN(frestore,  f340, ffc0, CF_FPU);
     INSN(fsave,     f340, ffc0, CF_FPU);
@@ -5586,7 +5587,7 @@ void register_m68k_insns (CPUM68KState *env)
     INSN(fscc_reg,  f240, fff8, FPU);
     INSN(fbcc,      f280, ff80, FPU);
     INSN(frestore,  f340, ffc0, FPU);
-    INSN(fsave,     f340, ffc0, FPU);
+    INSN(fsave,     f340, ffc0, FPU);*/
     INSN(intouch,   f340, ffc0, CF_ISA_A);
     INSN(cpushl,    f428, ff38, CF_ISA_A);
     INSN(wddata,    fb00, ff00, CF_ISA_A);

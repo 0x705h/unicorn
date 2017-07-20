@@ -15,7 +15,7 @@ DEF_HELPER_3(sar_cc, i32, env, i32, i32)
 DEF_HELPER_2(xflag_lt, i32, i32, i32)
 DEF_HELPER_2(set_sr, void, env, i32)
 DEF_HELPER_3(movec, void, env, i32, i32)
-
+/*
 DEF_HELPER_1(exts32_FP0, void, env)
 DEF_HELPER_1(extf32_FP0, void, env)
 DEF_HELPER_1(extf64_FP0, void, env)
@@ -60,7 +60,7 @@ DEF_HELPER_1(sincos_FP0_FP1, void, env)
 DEF_HELPER_1(fcmp_FP0_FP1, void, env)
 DEF_HELPER_1(compare_FP0, void, env)
 DEF_HELPER_1(update_fpsr, void, env)
-
+*/
 DEF_HELPER_2(f64_to_i32, f32, env, f64)
 DEF_HELPER_2(f64_to_f32, f32, env, f64)
 DEF_HELPER_2(i32_to_f64, f64, env, i32)
