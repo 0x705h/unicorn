@@ -65,6 +65,7 @@ static TCGv QEMU_FPCR;
 #define AREG(insn, pos) cpu_aregs[REG(insn, pos)]
 #define MACREG(acc) cpu_macc[acc]
 #define QREG_SP cpu_aregs[7]
+#define TCG_TARGET_HAS_extrh_i64_i32    0
 
 static TCGv NULL_QREG;
 #define IS_NULL_QREG(t) (TCGV_EQUAL(t, NULL_QREG))
@@ -198,7 +199,7 @@ static const uint8_t cc_op_live[CC_OP_NB] = {
 /* The number of opcodes emitted so far.  */
 static inline int tcg_op_buf_count(void)
 {
-    return tcg_ctx.gen_next_op_idx;
+    return tcg_ctx->gen_next_op_idx;
 }
 
 /* test for whether to terminate the TB for using too many opcodes.  */
@@ -208,33 +209,43 @@ static inline bool tcg_op_buf_full(void)
 }
 
 
+/* size changing ops */
+/*DEF(ext_i32_i64, 1, 1, 0, IMPL64)
+DEF(extu_i32_i64, 1, 1, 0, IMPL64)
+DEF(extrl_i64_i32, 1, 1, 0,
+    IMPL(TCG_TARGET_HAS_extrl_i64_i32)
+    | (TCG_TARGET_REG_BITS == 32 ? TCG_OPF_NOT_PRESENT : 0))
+DEF(extrh_i64_i32, 1, 1, 0,
+    IMPL(TCG_TARGET_HAS_extrh_i64_i32)
+    | (TCG_TARGET_REG_BITS == 32 ? TCG_OPF_NOT_PRESENT : 0))
+*/
 
 /* Size changing operations.  */
 
 void tcg_gen_extrl_i64_i32(TCGv_i32 ret, TCGv_i64 arg)
 {
     if (TCG_TARGET_REG_BITS == 32) {
-        tcg_gen_mov_i32(ret, TCGV_LOW(arg));
+        tcg_gen_mov_i32(cpu_env, ret, TCGV_LOW(arg));
     } else if (TCG_TARGET_HAS_extrl_i64_i32) {
         tcg_gen_op2(&tcg_ctx, INDEX_op_extrl_i64_i32,
                     GET_TCGV_I32(ret), GET_TCGV_I64(arg));
     } else {
-        tcg_gen_mov_i32(ret, MAKE_TCGV_I32(GET_TCGV_I64(arg)));
+        tcg_gen_mov_i32(cpu_env, ret, MAKE_TCGV_I32(GET_TCGV_I64(arg)));
     }
 }
 
 void tcg_gen_extrh_i64_i32(TCGv_i32 ret, TCGv_i64 arg)
 {
     if (TCG_TARGET_REG_BITS == 32) {
-        tcg_gen_mov_i32(ret, TCGV_HIGH(arg));
+        tcg_gen_mov_i32(cpu_env, ret, TCGV_HIGH(arg));
     } else if (TCG_TARGET_HAS_extrh_i64_i32) {
         tcg_gen_op2(&tcg_ctx, INDEX_op_extrh_i64_i32,
                     GET_TCGV_I32(ret), GET_TCGV_I64(arg));
     } else {
-        TCGv_i64 t = tcg_temp_new_i64();
-        tcg_gen_shri_i64(t, arg, 32);
-        tcg_gen_mov_i32(ret, MAKE_TCGV_I32(GET_TCGV_I64(t)));
-        tcg_temp_free_i64(t);
+        TCGv_i64 t = tcg_temp_new_i64(cpu_env);
+        tcg_gen_shri_i64(cpu_env, t, arg, 32);
+        tcg_gen_mov_i32(cpu_env, ret, MAKE_TCGV_I32(GET_TCGV_I64(t)));
+        tcg_temp_free_i64(cpu_env, t);
     }
 }
 
@@ -244,6 +255,13 @@ void tcg_gen_extrh_i64_i32(TCGv_i32 ret, TCGv_i64 arg)
 # define TARGET_INSN_START_WORDS (1 + TARGET_INSN_START_EXTRA_WORDS)
 #endif
 
+#ifndef TLADDR_ARGS
+#define TLADDR_ARGS    (TARGET_LONG_BITS <= TCG_TARGET_REG_BITS ? 1 : 2)
+#endif
+
+
+DEF(insn_start, 0, 0, TLADDR_ARGS * TARGET_INSN_START_WORDS,
+    TCG_OPF_NOT_PRESENT)
 
 #if TARGET_INSN_START_WORDS == 1
 # if TARGET_LONG_BITS <= TCG_TARGET_REG_BITS

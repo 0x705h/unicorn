@@ -187,6 +187,8 @@ DEF(debug_insn_start, 0, 0, 2, TCG_OPF_NOT_PRESENT)
 #else
 DEF(debug_insn_start, 0, 0, 1, TCG_OPF_NOT_PRESENT)
 #endif
+
+
 DEF(exit_tb, 0, 0, 1, TCG_OPF_BB_END)
 DEF(goto_tb, 0, 0, 1, TCG_OPF_BB_END)
 

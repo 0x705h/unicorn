@@ -630,6 +630,9 @@ struct TCGContext {
     int goto_tb_issue_mask;
 #endif
 
+    int gen_next_op_idx;
+    int gen_next_parm_idx;
+
     uint16_t gen_opc_buf[OPC_BUF_SIZE];
     TCGArg gen_opparam_buf[OPPARAM_BUF_SIZE];
 
