@@ -8,6 +8,7 @@
 #include "cpu.h"
 #include "unicorn_common.h"
 #include "uc_priv.h"
+#include "exec/gen-icount.h"
 
 
 const int M68K_REGS_STORAGE_SIZE = offsetof(CPUM68KState, tlb_table);

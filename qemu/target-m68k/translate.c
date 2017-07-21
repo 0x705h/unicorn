@@ -51,6 +51,7 @@ static TCGv_i32 cpu_exception_index;
 
 //static TCGv_env cpu_env;
 static TCGContext *cpu_env;
+static TCGContext *tcg_ctx;
 
 static char cpu_reg_names[2*8*3 + 5*4];
 static TCGv cpu_dregs[8];
@@ -78,6 +79,7 @@ static TCGv store_dummy;
 void m68k_tcg_init(struct uc_struct *uc)
 {
     cpu_env = uc->tcg_ctx;
+    tcg_ctx = uc->tcg_ctx;
     char *p;
     int i;
 
@@ -191,6 +193,106 @@ static const uint8_t cc_op_live[CC_OP_NB] = {
     [CC_OP_CMPB ... CC_OP_CMPL] = CCF_X | CCF_N | CCF_V,
     [CC_OP_LOGIC] = CCF_X | CCF_N
 };
+
+
+/* The number of opcodes emitted so far.  */
+static inline int tcg_op_buf_count(void)
+{
+    return tcg_ctx.gen_next_op_idx;
+}
+
+/* test for whether to terminate the TB for using too many opcodes.  */
+static inline bool tcg_op_buf_full(void)
+{
+    return tcg_op_buf_count() >= OPC_MAX_SIZE;
+}
+
+
+
+/* Size changing operations.  */
+
+void tcg_gen_extrl_i64_i32(TCGv_i32 ret, TCGv_i64 arg)
+{
+    if (TCG_TARGET_REG_BITS == 32) {
+        tcg_gen_mov_i32(ret, TCGV_LOW(arg));
+    } else if (TCG_TARGET_HAS_extrl_i64_i32) {
+        tcg_gen_op2(&tcg_ctx, INDEX_op_extrl_i64_i32,
+                    GET_TCGV_I32(ret), GET_TCGV_I64(arg));
+    } else {
+        tcg_gen_mov_i32(ret, MAKE_TCGV_I32(GET_TCGV_I64(arg)));
+    }
+}
+
+void tcg_gen_extrh_i64_i32(TCGv_i32 ret, TCGv_i64 arg)
+{
+    if (TCG_TARGET_REG_BITS == 32) {
+        tcg_gen_mov_i32(ret, TCGV_HIGH(arg));
+    } else if (TCG_TARGET_HAS_extrh_i64_i32) {
+        tcg_gen_op2(&tcg_ctx, INDEX_op_extrh_i64_i32,
+                    GET_TCGV_I32(ret), GET_TCGV_I64(arg));
+    } else {
+        TCGv_i64 t = tcg_temp_new_i64();
+        tcg_gen_shri_i64(t, arg, 32);
+        tcg_gen_mov_i32(ret, MAKE_TCGV_I32(GET_TCGV_I64(t)));
+        tcg_temp_free_i64(t);
+    }
+}
+
+#ifndef TARGET_INSN_START_EXTRA_WORDS
+# define TARGET_INSN_START_WORDS 1
+#else
+# define TARGET_INSN_START_WORDS (1 + TARGET_INSN_START_EXTRA_WORDS)
+#endif
+
+
+#if TARGET_INSN_START_WORDS == 1
+# if TARGET_LONG_BITS <= TCG_TARGET_REG_BITS
+static inline void tcg_gen_insn_start(target_ulong pc)
+{
+    tcg_gen_op1(&tcg_ctx, INDEX_op_insn_start, pc);
+}
+# else
+static inline void tcg_gen_insn_start(target_ulong pc)
+{
+    tcg_gen_op2(&tcg_ctx, INDEX_op_insn_start,
+                (uint32_t)pc, (uint32_t)(pc >> 32));
+}
+# endif
+#elif TARGET_INSN_START_WORDS == 2
+# if TARGET_LONG_BITS <= TCG_TARGET_REG_BITS
+static inline void tcg_gen_insn_start(target_ulong pc, target_ulong a1)
+{
+    tcg_gen_op2(&tcg_ctx, INDEX_op_insn_start, pc, a1);
+}
+# else
+static inline void tcg_gen_insn_start(target_ulong pc, target_ulong a1)
+{
+    tcg_gen_op4(&tcg_ctx, INDEX_op_insn_start,
+                (uint32_t)pc, (uint32_t)(pc >> 32),
+                (uint32_t)a1, (uint32_t)(a1 >> 32));
+}
+# endif
+#elif TARGET_INSN_START_WORDS == 3
+# if TARGET_LONG_BITS <= TCG_TARGET_REG_BITS
+static inline void tcg_gen_insn_start(target_ulong pc, target_ulong a1,
+                                      target_ulong a2)
+{
+    tcg_gen_op3(&tcg_ctx, INDEX_op_insn_start, pc, a1, a2);
+}
+# else
+static inline void tcg_gen_insn_start(target_ulong pc, target_ulong a1,
+                                      target_ulong a2)
+{
+    tcg_gen_op6(&tcg_ctx, INDEX_op_insn_start,
+                (uint32_t)pc, (uint32_t)(pc >> 32),
+                (uint32_t)a1, (uint32_t)(a1 >> 32),
+                (uint32_t)a2, (uint32_t)(a2 >> 32));
+}
+# endif
+#else
+# error "Unhandled number of operands to insn_start"
+#endif
+
 
 static void set_cc_op(DisasContext *s, CCOp op)
 {
@@ -5662,19 +5764,19 @@ void gen_intermediate_code(CPUM68KState *env, TranslationBlock *tb)
         }
 
         if (num_insns == max_insns && (tb->cflags & CF_LAST_IO)) {
-            gen_io_start();
+            //gen_io_start();
         }
 
         dc->insn_pc = dc->pc;
 	disas_m68k_insn(env, dc);
     } while (!dc->is_jmp && !tcg_op_buf_full() &&
              !cs->singlestep_enabled &&
-             !singlestep &&
+             //!singlestep &&
              (pc_offset) < (TARGET_PAGE_SIZE - 32) &&
              num_insns < max_insns);
 
     if (tb->cflags & CF_LAST_IO)
-        gen_io_end();
+        //gen_io_end();
     if (unlikely(cs->singlestep_enabled)) {
         /* Make sure the pc is updated, and raise a debug exception.  */
         if (!dc->is_jmp) {
@@ -5706,8 +5808,8 @@ void gen_intermediate_code(CPUM68KState *env, TranslationBlock *tb)
     if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)
         && qemu_log_in_addr_range(pc_start)) {
         qemu_log("----------------\n");
-        qemu_log("IN: %s\n", lookup_symbol(pc_start));
-        log_target_disas(cs, pc_start, dc->pc - pc_start, 0);
+        //qemu_log("IN: %s\n", lookup_symbol(pc_start));
+        //log_target_disas(cs, pc_start, dc->pc - pc_start, 0);
         qemu_log("\n");
     }
 #endif
